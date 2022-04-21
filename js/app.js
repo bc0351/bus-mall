@@ -1,101 +1,112 @@
 'use strict';
 
 const numImageDisplay = 3;
-const maxClicksAllowed = 2;
+const maxClicksAllowed = 5;
 const numImages = 15;
 
 let productContainer = document.querySelector('section#img-container');
-createImageElements(productContainer);
 let sectionElem = document.createElement('section');
-let resultsSectionElem = document.querySelector('section#results');
-let resultBtn = document.querySelector('button');
-let imgElems = productContainer.children;
 let articleElem = document.querySelector('article');
+let resultBtn = document.createElement('button');
+let btnSectionElem = document.querySelector('section#btn-container');
+let canvasElem = document.querySelector('canvas#product-vote-chart');
 
 let clicks = 0;
 let images = [];
 let products = [];
 let prevProducts = [];
 
-function Product(name, src, views) {
-    this.name = name;
-    this.src = src;
-    this.views = 0;
-    this.clicks = 0;
-    Product.productsArray.push(this);
+function Product(name, src, views = 0, votes = 0) {
+    this.name = name,
+        this.src = src,
+        this.views = views,
+        this.votes = votes,
+        Product.productsArray.push(this)
 }
 
 Product.productsArray = [];
-createProductArray();
 
-function randomNumber() {
-    return Math.floor(Math.random() * Product.productsArray.length);
-}
+function randomNumber() { return Math.floor(Math.random() * Product.productsArray.length); }
 
 function rgbaRandomColorArray(numColors, bgOpacity, borderOpacity) {
     let rgbArr = [];
+    let rgbBackgroundArr = [];
+    let rgbBorderArr = [];
+
     for (let i = 0; i < numColors; i++) {
-        if (i===0) {
-            rgbArr.push([Math.floor(Math.random() * 256),Math.floor(Math.random() * 256),Math.floor(Math.random() * 256)]);
-        }
         let rgbTemp = [];
-        let color = Math.floor(Math.random() * 256);
-        for (let j = 0; j < rgbArr.length; j++) {
-            color = Math.floor(Math.random() * 256);
-            while (rgbArr[i][j]===color) {
+
+        for (let j = 0; j < 3; j++) {
+            let singleColorArray = rgbArr.map(elm => elm[j]);
+            let color = Math.floor(Math.random() * 256);
+
+            while (singleColorArray.includes(color)) {
                 color = Math.floor(Math.random() * 256);
-                console.log(color);
+                console.log(`color: ${color}`);
             }
+
             rgbTemp.push(color);
         }
+
         rgbArr.push(rgbTemp);
+
+        rgbBackgroundArr.push(`rgba(${rgbTemp.toString(',')},${bgOpacity})`);
+        rgbBorderArr.push(`rgba(${rgbTemp.toString(',')},${borderOpacity})`);
     }
-    return [rgbArr.map(e => { `rgba(${e[0]},${e[1]},${e[2]},${bgOpacity})` }), rgbArr.map(e => { `rgba(${e[0]},${e[1]},${e[2]},${borderOpacity})` })];
+
+    console.log(rgbBackgroundArr, rgbBorderArr)
+
+    return [rgbBackgroundArr, rgbBorderArr];
 }
 
 function renderProducts() {
+
     products = [];
-    for (let i = 0; i < imgElems.length; i++) {
+
+    for (let i = 0; i < numImageDisplay; i++) {
         let random = randomNumber();
         while (products.includes(random) || prevProducts.includes(random)) {
             random = randomNumber();
         }
-        console.log(random);
+
         products.push(random);
     }
+    console.log(products);
     prevProducts = [];
     prevProducts = products;
-    console.log(products, prevProducts);
 
-    for (let i = 0; i < imgElems.length; i++) {
+    for (let i = 0; i < numImageDisplay; i++) {
         images[i] = imgElems.item(i);
-        images[i].src = Product.productsArray[products[i]].src;
-        images[i].alt = Product.productsArray[products[i]].name;
-        Product.productsArray.forEach((elm, idx) => { if (elm.name === Product.productsArray[products[i]].name) { Product.productsArray[idx].views++; } });
+        images[i].src = productsArray[products[i]].src;
+        images[i].alt = productsArray[products[i]].name;
+        productsArray.forEach((elm, idx) => { if (elm.name === productsArray[products[i]].name) { productsArray[idx].views++; } });
     }
 
 }
-function handleProductClick(event) {
 
+function handleProductClick(event) {
     clicks++;
 
-    Product.productsArray.forEach((elm, i) => { if (event.target.alt === elm.name) { Product.productsArray[i].clicks++; } });
-    
+    productsArray.forEach((elm, i) => { if (event.target.alt === elm.name) { productsArray[i].votes++; } });
+
     if (clicks === maxClicksAllowed) {
-        let btnSectionElem = document.querySelector('section#btn-container');
-        let canvasElem = document.querySelector('canvas#product-vote-chart');
+
         articleElem.appendChild(btnSectionElem);
         articleElem.appendChild(canvasElem);
+
+        resultBtn.className = 'results';
         resultBtn.textContent = 'View Chart';
         resultBtn.onclick = renderChart;
 
-        articleElem.appendChild(resultsSectionElem);
         btnSectionElem.appendChild(resultBtn);
 
-        // productContainer.className = 'no-voting';
         productContainer.removeEventListener('click', handleProductClick);
 
+        localStorage.removeItem('productsArray');
+        localStorage.setItem('productsArray', JSON.stringify(productsArray));
+
     } else {
+
         renderProducts();
     }
     console.log(clicks);
@@ -103,17 +114,17 @@ function handleProductClick(event) {
 
 function renderChart() {
 
-    let colorsArray = rgbaRandomColorArray(15, 0.2, 1);
-    let chartSectionElem = document.querySelector('section#product-vote-chart');
+    window.colorsArray = rgbaRandomColorArray(15, 0.2, 1);
 
     const ctx = document.getElementById('product-vote-chart').getContext('2d');
-    const productChart = new Chart(ctx, {
+
+    window.productChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: Product.productsArray.map(e => e.name),
+            labels: productsArray.map(e => e.name),
             datasets: [{
                 label: '# of Votes',
-                data: Product.productsArray.map(e => e.clicks),
+                data: productsArray.map(e => e.votes),
                 backgroundColor: colorsArray[0],
                 borderColor: colorsArray[1],
                 borderWidth: 1
@@ -127,36 +138,59 @@ function renderChart() {
             }
         }
     });
-    
-    chartSectionElem.appendChild(ctx);
+
+    btnSectionElem.removeChild(resultBtn);
+    resultBtn.textContent = 'Reset';
+    resultBtn.onclick = resetVoting;
+    btnSectionElem.appendChild(resultBtn);
 
 }
 
-function renderResults() {
-    console.log('renderResults');
-    let ulElem = document.createElement('ul');
+function resetVoting() {
+    clicks = 0;
+    productChart.destroy();
+    btnSectionElem.removeChild(resultBtn);
+    resultBtn.id = 'results-btn';
+    resultBtn.className = 'voting-open';
+    resultBtn.textContent = 'View Chart';
+    btnSectionElem.appendChild(resultBtn);
 
-    Product.productsArray.forEach(productObj => { let liElem = document.createElement('li'); liElem.textContent = `${productObj.name} had ${productObj.clicks} votes, and was seen ${productObj.views} times.`; ulElem.appendChild(liElem); });
-
-    resultsSectionElem.appendChild(ulElem);
-    articleElem.appendChild(resultsSectionElem);
+    productContainer.addEventListener('click', handleProductClick);
 }
 
-function createImageElements(parentElem) {
+function createImageElements() {
+
     for (let i = 0; i < numImageDisplay; i++) {
         let imgElem = document.createElement('img');
         imgElem.className = 'img-content';
-        parentElem.appendChild(imgElem);
+        productContainer.appendChild(imgElem);
     }
-    parentElem.addEventListener('click', handleProductClick);
-    return parentElem;
+    window.imgElems = productContainer.children;
 }
 
-function createProductArray() {
-    for (let i = 0; i < numImages; i++) {
-        new Product(`product${i + 1}`, `./img/products/${i + 1}.jpg`);
+function initializeProducts() {
+
+    if (localStorage.getItem('productsArray')) {
+        let parsedProducts = JSON.parse(localStorage.getItem('productsArray'));
+        parsedProducts.map(product => new Product(product.name, product.src, product.views, product.votes));
+
+    } else {
+        for (let i = 0; i < numImages; i++) { new Product(`product${i + 1}`, `./img/products/${i + 1}.jpg`); }
     }
-    console.log(Product.productsArray);
+    window.productsArray = Product.productsArray;
+    console.log(Product.name['product1']);
+
+    localStorage.removeItem('productsArray');
+    localStorage.setItem('productsArray', JSON.stringify(productsArray));
+
+    console.log(localStorage.getItem('productsArray'));
+    productContainer.addEventListener('click', handleProductClick);
 }
 
-renderProducts();
+function onLoadCallStack() {
+    initializeProducts();
+    createImageElements();
+    renderProducts();
+}
+
+onLoadCallStack();
