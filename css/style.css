@@ -41,7 +41,7 @@ article {
 
 .flex-container#img-container {
     display: flex;
-    max-height: 400px;
+    height: 400px;
     flex-direction: row;
     justify-content: space-between;
     align-content: center;
@@ -99,9 +99,18 @@ canvas {
     flex: 1 1;
 }
 
+.voting-open#results-btn {
+    display: none;
+}
+
+.results#results-btn {
+    display: block;
+}
+
 #btn-container {
     flex-direction: row;
     order: 3;
+    height: 100px;
     width: 100%;
     align-items: center;
     align-content: center;
